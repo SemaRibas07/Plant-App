@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Plântulas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            background-color: #6c47e6;
+            color: white;
+            padding: 20px;
+            margin-top: 0;
+            border-radius: 8px 8px 0 0;
+        }
+        h2 {
+            background-color: white;
+            color: #6c47e6;
+            padding: 20px;
+            margin-top: 0;
+            border-radius: 8px 8px 0 0;
+        }
+        input[type="number"], input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #6c47e6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #573ab6;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            font-size: small;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #6c47e6;
+            color: white;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .action-buttons button {
+            margin: 0 10px;
+        }
+        #file-upload {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Registro de Plântulas</h1>
+
+    <label for="tratamento">Nº de plântulas em área de Tratamento:</label>
+    <input type="number" id="tratamento" placeholder="Insira o número">
+
+    <label for="controle">Nº de plântulas em área de Controle:</label>
+    <input type="number" id="controle" placeholder="Insira o número">
+
+    <button onclick="adicionarDados()">Enviar Dados</button>
+
+    <h2>Tabela de Amostras</h2>
+    <table id="tabela">
+        <thead>
+            <tr>
+                <th>Amostra</th>
+                <th>Nº de Plântulas em Tratamento</th>
+                <th>Nº de Plântulas em Controle</th>
+            </tr>
+        </thead>
+        <tbody id="corpo-tabela">
+        </tbody>
+    </table>
+
+    <h2>Excluir Dados</h2>
+    <label for="excluirAmostra">Número da Amostra a Excluir:</label>
+    <input type="number" id="excluirAmostra" placeholder="Ex: 1">
+    <button onclick="excluirDado()">Excluir</button>
+
+    <h2>Salvar e Carregar</h2>
+    <button onclick="salvarExcel()">Salvar em Excel</button>
+    <button onclick="carregarExcel()">Carregar Excel</button>
+    <input type="file" id="input-excel" style="display: none;" onchange="importarExcel(event)">
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.2/xlsx.full.min.js"></script>
+<script>
+    let amostras = [];
+    let contadorAmostra = 1;
+
+    function adicionarDados() {
+        const tratamento = document.getElementById('tratamento').value;
+        const controle = document.getElementById('controle').value;
+
+        if (tratamento && controle) {
+            // Adicionar nova linha na tabela
+            const novaAmostra = { amostra: contadorAmostra, tratamento: tratamento, controle: controle };
+            amostras.push(novaAmostra);
+            atualizarTabela();
+            contadorAmostra++;
+
+            // Limpar os campos
+            document.getElementById('tratamento').value = '';
+            document.getElementById('controle').value = '';
+        } else {
+            alert("Por favor, insira todos os dados.");
+        }
+    }
+
+    function atualizarTabela() {
+        const tbody = document.getElementById('corpo-tabela');
+        tbody.innerHTML = '';
+
+        amostras.forEach((item, index) => {
+            const row = tbody.insertRow();
+            row.insertCell(0).innerText = item.amostra; // Atualiza o número da amostra
+            row.insertCell(1).innerText = item.tratamento;
+            row.insertCell(2).innerText = item.controle;
+        });
+    }
+
+    function excluirDado() {
+        const excluirAmostra = document.getElementById('excluirAmostra').value;
+
+        if (excluirAmostra && excluirAmostra > 0 && excluirAmostra <= amostras.length) {
+            amostras.splice(excluirAmostra - 1, 1); // Remove a amostra
+            atualizarTabela();
+            contadorAmostra--;
+            document.getElementById('excluirAmostra').value = '';
+        } else {
+            alert("Por favor, insira um número válido de amostra.");
+        }
+    }
+
+    function salvarExcel() {
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(amostras.map((item) => ({
+            Amostra: item.amostra,
+            'Nº de Plântulas em Tratamento': item.tratamento,
+            'Nº de Plântulas em Controle': item.controle
+        })));
+        XLSX.utils.book_append_sheet(wb, ws, "Amostras");
+        XLSX.writeFile(wb, "dados_amostras.xlsx");
+    }
+
+    function carregarExcel() {
+        document.getElementById('input-excel').click();
+    }
+
+    function importarExcel(event) {
+        const input = event.target;
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+            amostras = jsonData.map((item) => ({
+                amostra: item['Amostra'],
+                tratamento: item['Nº de Plântulas em Tratamento'],
+                controle: item['Nº de Plântulas em Controle']
+            }));
+
+            contadorAmostra = amostras.length ? amostras[amostras.length - 1].amostra + 1 : 1;
+            atualizarTabela();
+        };
+
+        reader.readAsArrayBuffer(input.files[0]);
+    }
+</script>
+
+</body>
+</html>
